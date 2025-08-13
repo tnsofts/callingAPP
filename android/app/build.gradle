@@ -2,6 +2,7 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -51,6 +52,7 @@ react {
     // hermesFlags = ["-O", "-output-source-map"]
 
     /* Autolinking */
+    apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
     autolinkLibrariesWithApp()
 }
 
@@ -83,7 +85,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "0.0.01"
     }
     signingConfigs {
         debug {
@@ -115,5 +117,34 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+afterEvaluate {
+    android.applicationVariants.all { def variant ->
+        def targetName = variant.name.capitalize()
+        def fontCopyTask = tasks.findByName("copyReactNativeVectorIconFonts")
+
+        def lintVitalAnalyzeTask = tasks.findByName("lintVitalAnalyze${targetName}")
+        if (lintVitalAnalyzeTask) {
+            lintVitalAnalyzeTask.dependsOn(fontCopyTask)
+        }
+
+        def lintAnalyzeTask = tasks.findByName("lintAnalyze${targetName}")
+        if (lintAnalyzeTask) {
+            lintAnalyzeTask.dependsOn(fontCopyTask)
+        }
+
+        def generateVitalReportTask = tasks.findByName("generate${targetName}LintVitalReportModel")
+        if (generateVitalReportTask) {
+            generateVitalReportTask.dependsOn(fontCopyTask)
+        }
+
+        def generateReportTask = tasks.findByName("generate${targetName}LintReportModel")
+        if (generateReportTask) {
+            generateReportTask.dependsOn(fontCopyTask)
+        }
+
+        def generateAssetsTask = tasks.findByName("generate${targetName}Assets")
+        generateAssetsTask.dependsOn(fontCopyTask)
     }
 }
