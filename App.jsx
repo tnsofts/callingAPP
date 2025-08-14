@@ -12,25 +12,29 @@ import DeviceInformation from './screens/DeviceInformation';
 import store from './store';
 import LoaderKit from 'react-native-loader-kit';
 import {navigationRef, navigate} from './navigationRef';
+import {useWebSocket} from './screens/WebScoket';
+import DeviceInfo from 'react-native-device-info';
 
 const Stack = createStackNavigator();
 
 export default function App() {
-  const [booting, setBooting] = useState(true);
-  const {isRegistered, getIsRegistered} = store();
+  const BASE_URL = 'http://192.168.1.51:3002';
+  const {isRegistered, getIsRegistered, setBooting, booting} = store();
 
   useEffect(() => {
     const getIsRegisteredData = async () => {
+      console.log('booting', booting, 'isRegistered', isRegistered);
       await getIsRegistered();
-      setBooting(false);
+      setBooting(true);
+      if (!isRegistered) {
+        navigate('DeviceInformation');
+      }
     };
     getIsRegisteredData();
-    if (isRegistered) {
-      navigate('Scanner');
-    }
-  }, [isRegistered, getIsRegistered]);
+  }, [booting, getIsRegistered]);
 
-  if (booting) {
+  if (!booting) {
+    console.log('booting', booting, 'isRegistered', isRegistered);
     return (
       <>
         <StatusBar translucent={true} backgroundColor="transparent" />
@@ -43,22 +47,24 @@ export default function App() {
         </View>
       </>
     );
+  } else {
+    console.log('booting', booting, 'isRegistered', isRegistered);
+    return (
+      <WebSocketProvider>
+        <NavigationContainer ref={navigationRef}>
+          <Stack.Navigator
+            initialRouteName={'DeviceInformation'}
+            screenOptions={{headerShown: false}}>
+            <Stack.Screen name="Scanner" component={Scanner} />
+            <Stack.Screen name="Main" component={Main} />
+            <Stack.Screen name="CallScreen" component={CallScreen} />
+            <Stack.Screen
+              name="DeviceInformation"
+              component={DeviceInformation}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </WebSocketProvider>
+    );
   }
-  return (
-    <WebSocketProvider>
-      <NavigationContainer ref={navigationRef}>
-        <Stack.Navigator
-          // initialRouteName={isRegistered ? 'Scanner' : 'DeviceInformation'}
-          screenOptions={{headerShown: false}}>
-          <Stack.Screen name="Scanner" component={Scanner} />
-          <Stack.Screen name="Main" component={Main} />
-          <Stack.Screen name="CallScreen" component={CallScreen} />
-          <Stack.Screen
-            name="DeviceInformation"
-            component={DeviceInformation}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </WebSocketProvider>
-  );
 }

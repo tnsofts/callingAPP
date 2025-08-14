@@ -1,16 +1,65 @@
-import {useRoute} from '@react-navigation/native';
-import React from 'react';
-import {StatusBar, StyleSheet, Text, View} from 'react-native';
+import {useNavigation, useRoute} from '@react-navigation/native';
+import React, {useState} from 'react';
+import {
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import CustomWarningMSg from '../component/CustomWarningMSg';
 // import LinearGradient from 'react-native-linear-gradient';
 
 export default function CallScreen() {
   const route = useRoute();
-  // const {name} = route.params;
+  const Base_url = 'http://192.168.1.52:3002';
+  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const navigation = useNavigation();
+  const {callIdRoute} = route.params;
+
+  const HangUpCall = async callId => {
+    try {
+      const req = await fetch(`${Base_url}/v1/call/hangup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer YOUR_API_TOKEN', // from Tata Tele
+        },
+        body: JSON.stringify({call_id: callId}),
+      });
+
+      const res = await req.json();
+      console.log('Tata Tele API - Hangup Call Response:', res);
+
+      if (res.success) {
+        navigation.navigate('Main');
+      } else {
+        setError(true);
+        setErrorMsg(res.message);
+      }
+
+      return res;
+    } catch (error) {
+      console.log('Error ending call:', error);
+    }
+  };
   return (
     <>
+      <CustomWarningMSg
+        visible={error}
+        title={'Error'}
+        msg={errorMsg}
+        close={() => setError(false)}
+        showBtn={true}
+        buttonText={'OK'}
+        buttonClass={'bg-blue-500'}
+        buttonWrapperClass={'w-full'}
+        isError={error}
+      />
       <StatusBar barStyle={'light-content'} />
       <LinearGradient
         colors={['#2d62ef', '#2d399e']} // Gradient colors
@@ -44,14 +93,16 @@ export default function CallScreen() {
               <Text className="text-white text-2xl">00:22:12</Text>
             </View>
           </View>
-          <View className="items-center mb-8 justify-center relative">
+          <TouchableOpacity
+            onPress={() => HangUpCall(callIdRoute)}
+            className="items-center mb-8 justify-center relative">
             <LinearGradient
               colors={['#FF4B4B', '#FF0000']} // Gradient colors
               start={{x: 0.5, y: 0}} // Gradient starting point
               end={{x: 0.5, y: 1}} // Gradient ending point
               style={styles.callBox}></LinearGradient>
             <Icon name="call-outline" size={24} color="white" />
-          </View>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     </>

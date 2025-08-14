@@ -184,32 +184,6 @@ export default function Main() {
     }
   };
 
-  const HangUpCall = async callId => {
-    try {
-      const req = await fetch(`${Base_url}/v1/call/hangup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer YOUR_API_TOKEN', // from Tata Tele
-        },
-        body: JSON.stringify({call_id: callId}),
-      });
-
-      const res = await req.json();
-      console.log('Tata Tele API - Hangup Call Response:', res);
-
-      if (res.success) {
-        showToasts('Call ended successfully');
-      } else {
-        showToasts('Failed to end call');
-      }
-
-      return res;
-    } catch (error) {
-      console.log('Error ending call:', error);
-    }
-  };
-
   const CallLog = async (fromDate, toDate) => {
     try {
       const queryParams = new URLSearchParams({
@@ -274,7 +248,7 @@ export default function Main() {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('CallScreen')}
+              onPress={() => CallApi('+91 8010911884', 'Father/Gardian 1')}
               className="bg-[#fff] flex-row items-center justify-center space-x-2 rounded-full p-3">
               <Icon name="call" size={24} color="#2D3192" />
             </TouchableOpacity>
@@ -294,7 +268,7 @@ export default function Main() {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('CallScreen')}
+              onPress={() => CallApi('+91 8010911884', 'Mother/Gardian 1')}
               className="bg-[#fff] flex-row items-center justify-center space-x-2 rounded-full p-3">
               <Icon name="call" size={24} color="#2D3192" />
             </TouchableOpacity>

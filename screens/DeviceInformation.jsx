@@ -46,7 +46,8 @@ export default function DeviceInformation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const {isRegistered, setIsRegistered} = store();
+  const {isRegistered, setIsRegistered, setDeviceIdBackend, setIdCardNo} =
+    store();
 
   // Use the same URL logic as WebSocket
   const getBaseUrl = () => {
@@ -68,9 +69,11 @@ export default function DeviceInformation() {
     mac: '',
     manufacturer: '',
     deviceId: '',
+    baseOs: '',
     systemName: '',
     systemVersion: '',
     buildNumber: '',
+    applicationName: '',
     brand: '',
     model: '',
   });
@@ -93,22 +96,6 @@ export default function DeviceInformation() {
   } = useWebSocket();
 
   useEffect(() => {
-    // Test basic HTTP connectivity first
-    const testHttpConnection = async () => {
-      try {
-        const response = await fetch(`${BaseUrl}/home`);
-        const text = await response.text();
-      } catch (error) {
-        console.error('❌ HTTP connection test failed:', error.message);
-        setError(true);
-        setErrorMsg(`Network error: Cannot reach server at ${BaseUrl}`);
-        return;
-      }
-    };
-
-    // Run HTTP test first
-    testHttpConnection();
-
     if (connectionError) {
       // You could show an alert or update UI to inform user
       setError(true);
@@ -119,6 +106,7 @@ export default function DeviceInformation() {
       // Set up the event listener as soon as socket is available
       const handleRegisterDevice = data => {
         console.log('Received registerDevice event:', data);
+
         // Clear any connection errors since we're receiving data
         if (error && errorMsg.includes('WebSocket')) {
           setError(false);
@@ -164,9 +152,11 @@ export default function DeviceInformation() {
           deviceName,
           manufacturer,
           deviceId,
+          baseOs,
           systemName,
           systemVersion,
           buildNumber,
+          applicationName,
           brand,
           model,
           // mac // optional
@@ -174,9 +164,11 @@ export default function DeviceInformation() {
           DeviceInfo.getDeviceName(),
           DeviceInfo.getManufacturer(),
           DeviceInfo.getDeviceId(),
+          DeviceInfo.getBaseOs(),
           DeviceInfo.getSystemName(),
           DeviceInfo.getSystemVersion(),
           DeviceInfo.getBuildNumber(),
+          DeviceInfo.getApplicationName(),
           DeviceInfo.getBrand(),
           DeviceInfo.getModel(),
           // DeviceInfo.getMacAddress()
@@ -186,12 +178,13 @@ export default function DeviceInformation() {
           deviceName,
           manufacturer,
           deviceId,
+          baseOs,
           systemName,
           systemVersion,
           buildNumber,
+          applicationName,
           brand,
           model,
-          mac: '', // or hardcoded for testing
         });
       } catch (error) {
         console.error('Error fetching device info:', error);
@@ -214,7 +207,9 @@ export default function DeviceInformation() {
     const data = await req.json();
     console.log(data);
     if (data.return_status === 1 || data.return_status === 2) {
-      setIsRegistered(true);
+      await setIsRegistered(true);
+      await setDeviceIdBackend(deviceData.deviceId);
+      await setIdCardNo(data.id_card_no);
       navigation.navigate('Scanner');
     } else {
       setError(true);
