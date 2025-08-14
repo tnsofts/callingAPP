@@ -52,27 +52,27 @@ export default function DeviceInformation() {
   const getBaseUrl = () => {
     if (Platform.OS === 'android') {
       // For Android emulator, use your machine's actual IP address
-      return 'http://192.168.1.51:3002';
+      return 'http://192.168.0.100:3002';
     } else if (Platform.OS === 'ios') {
       // For iOS simulator, use your machine's IP address as well
-      return 'http://192.168.1.51:3002';
+      return 'http://192.168.0.100:3002';
     } else {
-      return 'http://192.168.1.51:3002';
+      return 'http://192.168.0.100:3002';
     }
   };
 
-  const BaseUrl = getBaseUrl();
-
+  const BaseUrl = getBaseUrl();   
   const [deviceData, setDeviceData] = useState({
-    deviceName: '',
-    mac: '',
+    device_name: '',
+    device_qr_code: '',
     manufacturer: '',
-    deviceId: '',
-    systemName: '',
-    systemVersion: '',
-    buildNumber: '',
-    brand: '',
-    model: '',
+    device_os: '',
+    system_name: '',
+    system_version: '',
+    build_no: '',
+    app_name: '',
+    device_brand: '',
+    device_model: '',
   });
   console.log(deviceData);
 
@@ -127,8 +127,8 @@ export default function DeviceInformation() {
       };
 
       // Add the event listener
-      socket.on('issueDevice', handleRegisterDevice);
-      console.log('Added registerDevice listener');
+      // socket.on('device', handleRegisterDevice);
+      // console.log('Added registerDevice listener');
 
       // If already connected, the event might have been missed
       // You could request it again or handle this case
@@ -164,9 +164,11 @@ export default function DeviceInformation() {
           deviceName,
           manufacturer,
           deviceId,
+          baseOs,
           systemName,
           systemVersion,
           buildNumber,
+          appName,
           brand,
           model,
           // mac // optional
@@ -174,25 +176,28 @@ export default function DeviceInformation() {
           DeviceInfo.getDeviceName(),
           DeviceInfo.getManufacturer(),
           DeviceInfo.getDeviceId(),
+          DeviceInfo.getBaseOs(),
           DeviceInfo.getSystemName(),
           DeviceInfo.getSystemVersion(),
           DeviceInfo.getBuildNumber(),
+          DeviceInfo.getApplicationName(),
           DeviceInfo.getBrand(),
           DeviceInfo.getModel(),
           // DeviceInfo.getMacAddress()
         ]);
 
         setDeviceData({
-          deviceName,
-          manufacturer,
-          deviceId,
-          systemName,
-          systemVersion,
-          buildNumber,
-          brand,
-          model,
-          mac: '', // or hardcoded for testing
-        });
+          device_name: deviceName,
+          device_qr_code: deviceId,
+          manufacturer: manufacturer,
+          device_os: baseOs,
+          system_name: systemName,
+          system_version: systemVersion,
+          build_no: buildNumber,
+          app_name: appName,
+          device_brand: brand,
+          device_model: model,
+       });
       } catch (error) {
         console.error('Error fetching device info:', error);
       }
@@ -207,9 +212,7 @@ export default function DeviceInformation() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        device_info: deviceData,
-      }),
+      body: JSON.stringify({...deviceData})
     });
     const data = await req.json();
     console.log(data);
@@ -254,7 +257,7 @@ export default function DeviceInformation() {
                     <Text className="text-lg mb-2">Device Name</Text>
                     <TextInput
                       editable={false}
-                      value={deviceData.deviceName}
+                      value={deviceData.device_name}
                       className="border border-[#DCDCDC] bg-[#EDEDED] rounded-md p-2"
                     />
                   </View>
@@ -272,10 +275,10 @@ export default function DeviceInformation() {
                   />
                   <Detail
                     label="Device ID"
-                    value={deviceData.deviceId}
+                    value={deviceData.device_qr_code}
                     icon={require('./assets/deviceId.png')}
                     qr={true}
-                    deviceId={deviceData.deviceId}
+                    deviceId={deviceData.device_qr_code}
                   />
                 </View>
 
@@ -286,22 +289,22 @@ export default function DeviceInformation() {
                   <Text className="text-lg mb-2">System Information</Text>
                   <Detail
                     label="Base OS"
-                    value={deviceData.systemName}
+                    value={deviceData.device_os}
                     icon={require('./assets/baseOS.png')}
                   />
                   <Detail
                     label="System Name"
-                    value={deviceData.systemName}
+                    value={deviceData.device_name}
                     icon={require('./assets/systemName.png')}
                   />
                   <Detail
                     label="System Version"
-                    value={deviceData.systemVersion}
+                    value={deviceData.system_version}
                     icon={require('./assets/systemVersion.png')}
                   />
                   <Detail
                     label="Build Number"
-                    value={deviceData.buildNumber}
+                    value={deviceData.build_no}
                     icon={require('./assets/buildNumber.png')}
                   />
                 </View>
@@ -318,12 +321,12 @@ export default function DeviceInformation() {
                   />
                   <Detail
                     label="Device Brand"
-                    value={deviceData.brand}
+                    value={deviceData.device_brand}
                     icon={require('./assets/deviceBrand.png')}
                   />
                   <Detail
                     label="Device Model"
-                    value={deviceData.model}
+                    value={deviceData.device_model}
                     icon={require('./assets/deviceModal.png')}
                   />
                 </View>
