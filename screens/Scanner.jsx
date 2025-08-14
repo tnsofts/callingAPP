@@ -83,15 +83,18 @@ export default function Scanner() {
           emit('deviceIssueSuccess', {deviceId,idCardNo})
           navigation.navigate('Main');
         } else {
+          emit('deviceIssueSuccess', {deviceId,idCardNo,error: data.return_message})
           setError(true);
           setErrorMsg(data.return_message);
         }
       } else {
         setError(true);
+        emit('deviceIssueSuccess', {deviceId,idCardNo,error:"Device ID does not match"})
         setErrorMsg('Device ID does not match');
       }
       } catch (error) {
           console.log("error login data", error.messages)
+          emit('deviceIssueSuccess', {deviceId,idCardNo,error: error.messages})
       }
       
     };
