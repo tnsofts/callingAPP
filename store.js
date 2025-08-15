@@ -11,7 +11,10 @@ const store = create(set => ({
   token: null,
   jwtToken: null,
   isRegistered: null,
-
+  deviceId: null,
+ 
+  setDeviceId: value => set(() => ({deviceId: value})),
+  
   setIsRegistered: async value => {
     try {
       set(() => ({isRegistered: value}));

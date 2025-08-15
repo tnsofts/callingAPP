@@ -207,7 +207,7 @@ export default function DeviceInformation() {
   }, []);
 
   const handleRegister = async () => {
-    const req = await fetch(`${BaseUrl}/api/addNewMobileDevice`, {
+    const req = await fetch(`${BaseUrl}/api/addNewMobileDeviceApp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

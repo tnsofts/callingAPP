@@ -23,11 +23,11 @@ export default function Scanner() {
   const [deviceIdScanner, setDeviceIdScanner] = useState('');
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const {deviceIdBackend, idCardNo} = store();
-  // const {deviceIdBackend, idCardNo} = store();
+  const {deviceIdBackend, idCardNo, deviceId} = store();
+  //const {deviceIdBackend, idCardNo} = store();
   useEffect(() => {
     async function getDeviceToken() {
-      const deviceId = await DeviceInfo.getDeviceId();
+      const deviceId = DeviceInfo.getDeviceId();
       console.log('Device ID:', deviceId);
       setDeviceIdScanner(deviceId);
     }
@@ -63,10 +63,10 @@ export default function Scanner() {
   } = useWebSocket();
  
   useEffect(() => {
-    const handleScan = async (deviceId, idCardNo) => {
+    const handleScan = async (deviceId_, idCardNo) => {
       try {
         console.log('data compare', deviceId,deviceIdScanner);
-            if (deviceId === deviceIdScanner) {
+            if (deviceId_ === deviceId) {
         const req = await fetch(`${BASE_URL}/api/login`, {
           method: 'POST',
           headers: {
@@ -83,18 +83,18 @@ export default function Scanner() {
           emit('deviceIssueSuccess', {deviceId,idCardNo})
           navigation.navigate('Main');
         } else {
-          emit('deviceIssueSuccess', {deviceId,idCardNo,error: data.return_message})
+          emit('deviceIssueFailed', {deviceId,idCardNo,errors: data.return_message})
           setError(true);
           setErrorMsg(data.return_message);
         }
       } else {
         setError(true);
-        emit('deviceIssueSuccess', {deviceId,idCardNo,error:"Device ID does not match"})
+        emit('deviceIssueFailed', {deviceId,idCardNo,errors:"Device ID does not match"})
         setErrorMsg('Device ID does not match');
       }
       } catch (error) {
           console.log("error login data", error.messages)
-          emit('deviceIssueSuccess', {deviceId,idCardNo,error: error.messages})
+          emit('deviceIssueFailed', {deviceId,idCardNo,errors: error.messages})
       }
       
     };
@@ -146,6 +146,7 @@ export default function Scanner() {
     error,
     errorMsg,
     BASE_URL,
+    deviceId
   ]);
  
   const GradientBackground = styled(LinearGradient);

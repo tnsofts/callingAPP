@@ -19,8 +19,18 @@ const Stack = createStackNavigator();
  
 export default function App() {
   const BASE_URL = 'http://192.168.0.100:3002';
-  const {isRegistered, getIsRegistered, setBooting, booting} = store();
+  const {isRegistered, getIsRegistered, setBooting, booting, setDeviceId} = store();
  
+   useEffect(() => {
+      async function getDeviceToken() {
+        const deviceId = DeviceInfo.getDeviceId();
+        console.log('Device ID:', deviceId);
+        //setDeviceIdScanner(deviceId);
+        setDeviceId(deviceId)
+      }
+      getDeviceToken();
+    }, []);
+
   useEffect(() => {
     const getIsRegisteredData = async () => {
       console.log('booting', booting, 'isRegistered', isRegistered);

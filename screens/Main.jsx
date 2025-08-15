@@ -20,10 +20,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import {styled} from 'nativewind';
 import DeviceInfo from 'react-native-device-info';
 import QRCode from 'react-native-qrcode-svg';
+import {useWebSocket} from './WebScoket';
 
 export default function Main() {
   const {jwtToken, idNumber, setIsLogedIn} = store();
-  const Base_url = 'http://192.168.1.52:3002';
+  const Base_url = 'http://192.168.0.100:3002';
   const [gender, setGender] = useState(profileData?.gender || '');
   const [profileData, setProfileData] = useState([]);
   const [profileImage, setProfileImage] = useState(null);
@@ -32,6 +33,87 @@ export default function Main() {
   const [deviceId, setDeviceId] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const navigation = useNavigation();
+  
+   const {
+      socket,
+      isConnected,
+      connectionError,
+      emit,
+      on,
+      off,
+      sendMessage,
+      messages,
+      joinRoom,
+      leaveRoom,
+      socketId,
+    } = useWebSocket();
+
+
+    useEffect(() => {
+       
+      console.log("Web Socket hello" )
+          if (socket) {           
+            
+                const handleReturnDevice = async(data) => {
+                  console.log('Received returnsDevice event:', data);
+                  const callDetails = [
+                        { name: "Father", mobile: "9098789087", startTime: "10:30 AM", duration: "5m 30s" },
+                        { name: "Mother", mobile: "9098789086", startTime: "11:45 AM", duration: "3m 15s" },
+                        { name: "Father", mobile: "9098789083", startTime: "2:15 PM", duration: "7m 45s" }
+                      ]; 
+                  
+                    try {
+                      const response = await fetch(`${Base_url}/api/returnMobileDevice`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          //Authorization: `Bearer ${jwtToken}`, // Uncomment if using JWT
+                        },
+                        body: JSON.stringify({
+                          data,
+                          callDetails
+                        })
+                      });
+
+                      const result = await response.json();
+                      if (result.return_status === 1) {
+                           emit('deviceReturnSuccess', data)
+                           navigation.navigate('DeviceInformation');
+                      } else {
+                        emit('deviceReturnFailed', {...data, errors: result.return_message})
+                          console.log("data")
+                      }
+                      console.log('PUT response:', result);
+                    } catch (error) {
+                      emit('deviceReturnFailed', {...data, errors: error.messages})
+                      console.error('PUT request failed:', error);
+                    }
+
+                  if (error && errorMsg.includes('WebSocket')) {
+                    setError(false);
+                    setErrorMsg('');
+                  }
+                };
+                socket.on('requestReturnDevice', handleReturnDevice);
+
+                if (isConnected) {
+                  console.log(
+                    'Socket already connected, registerDevice event might have been missed',
+                  );
+                  // Optionally emit something to let server know we're ready
+                }
+          
+                // Cleanup
+                return () => {
+                  socket.off('requestReturnDevice', handleReturnDevice);
+                  console.log('Removed registerDevice listener');
+                };
+
+          }
+
+    },[socket,isConnected,connectionError])
+
+    
 
   // useEffect(() => {
   // const fetchProfile = async () => {
@@ -85,6 +167,7 @@ export default function Main() {
 
   // fetchProfile();
   // }, []);
+
 
   useEffect(() => {
     async function getDeviceToken() {
