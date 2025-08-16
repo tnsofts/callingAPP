@@ -52,16 +52,16 @@ export default function DeviceInformation() {
   const getBaseUrl = () => {
     if (Platform.OS === 'android') {
       // For Android emulator, use your machine's actual IP address
-      return 'http://192.168.0.100:3002';
+      return 'http://192.168.1.90:3002';
     } else if (Platform.OS === 'ios') {
       // For iOS simulator, use your machine's IP address as well
-      return 'http://192.168.0.100:3002';
+      return 'http://192.168.1.90:3002';
     } else {
-      return 'http://192.168.0.100:3002';
+      return 'http://192.168.1.90:3002';
     }
   };
 
-  const BaseUrl = getBaseUrl();   
+  const BaseUrl = getBaseUrl();
   const [deviceData, setDeviceData] = useState({
     device_name: '',
     device_qr_code: '',
@@ -197,7 +197,7 @@ export default function DeviceInformation() {
           app_name: appName,
           device_brand: brand,
           device_model: model,
-       });
+        });
       } catch (error) {
         console.error('Error fetching device info:', error);
       }
@@ -212,7 +212,7 @@ export default function DeviceInformation() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({...deviceData})
+      body: JSON.stringify({...deviceData}),
     });
     const data = await req.json();
     console.log(data);

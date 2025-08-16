@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
+  BackHandler,
   Image,
   ImageBackground,
   StatusBar,
@@ -10,7 +11,11 @@ import {
   View,
 } from 'react-native';
 import store from '../store';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -24,7 +29,7 @@ import {useWebSocket} from './WebScoket';
 
 export default function Main() {
   const {jwtToken, idNumber, setIsLogedIn} = store();
-  const Base_url = 'http://192.168.0.100:3002';
+  const Base_url = 'http://192.168.1.90:3002';
   const [gender, setGender] = useState(profileData?.gender || '');
   const [profileData, setProfileData] = useState([]);
   const [profileImage, setProfileImage] = useState(null);
@@ -32,142 +37,227 @@ export default function Main() {
   const [customerNo, setCustomerNo] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigation = useNavigation();
-  
-   const {
-      socket,
-      isConnected,
-      connectionError,
-      emit,
-      on,
-      off,
-      sendMessage,
-      messages,
-      joinRoom,
-      leaveRoom,
-      socketId,
-    } = useWebSocket();
+  const {studentData} = store();
 
+  const {
+    socket,
+    isConnected,
+    connectionError,
+    emit,
+    on,
+    off,
+    sendMessage,
+    messages,
+    joinRoom,
+    leaveRoom,
+    socketId,
+  } = useWebSocket();
 
-    useEffect(() => {
-       
-      console.log("Web Socket hello" )
-          if (socket) {           
-            
-                const handleReturnDevice = async(data) => {
-                  console.log('Received returnsDevice event:', data);
-                  const callDetails = [
-                        { name: "Father", mobile: "9098789087", startTime: "10:30 AM", duration: "5m 30s" },
-                        { name: "Mother", mobile: "9098789086", startTime: "11:45 AM", duration: "3m 15s" },
-                        { name: "Father", mobile: "9098789083", startTime: "2:15 PM", duration: "7m 45s" }
-                      ]; 
-                  
-                    try {
-                      const response = await fetch(`${Base_url}/api/returnMobileDevice`, {
-                        method: 'PUT',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          //Authorization: `Bearer ${jwtToken}`, // Uncomment if using JWT
-                        },
-                        body: JSON.stringify({
-                          data,
-                          callDetails
-                        })
-                      });
+  useEffect(() => {
+    console.log('Web Socket hello');
+    if (socket) {
+      // Store call logs temporarily
+      const callLogsStorage = [];
 
-                      const result = await response.json();
-                      if (result.return_status === 1) {
-                           emit('deviceReturnSuccess', data)
-                           navigation.navigate('DeviceInformation');
-                      } else {
-                        emit('deviceReturnFailed', {...data, errors: result.return_message})
-                          console.log("data")
-                      }
-                      console.log('PUT response:', result);
-                    } catch (error) {
-                      emit('deviceReturnFailed', {...data, errors: error.messages})
-                      console.error('PUT request failed:', error);
-                    }
+      const CallLog = async call_ids => {
+        try {
+          // Clear previous call logs
+          callLogsStorage.length = 0;
 
-                  if (error && errorMsg.includes('WebSocket')) {
-                    setError(false);
-                    setErrorMsg('');
-                  }
-                };
-                socket.on('requestReturnDevice', handleReturnDevice);
+          // Handle both single call_id and array of call_ids
+          const idsArray = Array.isArray(call_ids) ? call_ids : [call_ids];
 
-                if (isConnected) {
-                  console.log(
-                    'Socket already connected, registerDevice event might have been missed',
-                  );
-                  // Optionally emit something to let server know we're ready
+          // Fetch all call logs in parallel
+          const callLogPromises = idsArray.map(async call_id => {
+            const queryParams = new URLSearchParams({
+              call_id: call_id,
+            }).toString();
+
+            const req = await fetch(
+              `https://api-smartflo.tatateleservices.com/v1/call/records?${queryParams}`,
+              {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization:
+                    'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk',
+                },
+              },
+            );
+
+            const res = await req.json();
+            return res;
+          });
+
+          // Wait for all API calls to complete
+          const allCallLogs = await Promise.all(callLogPromises);
+
+          // Process and format the call logs
+          const formattedCallDetails = [];
+
+          allCallLogs.forEach(apiResponse => {
+            console.log('Tata Tele API - Call Logs:', apiResponse);
+
+            if (apiResponse.results && apiResponse.results.length > 0) {
+              apiResponse.results.forEach(callRecord => {
+                // Extract relevant information
+                const clientNumber =
+                  callRecord.client_number?.replace('+91', '') || '';
+                const startTime = formatTime(callRecord.time);
+                const duration = formatDuration(callRecord.call_duration);
+
+                // Determine contact name based on phone number
+                let contactName = 'Unknown';
+                if (studentData?.father_mobile_no === clientNumber) {
+                  contactName = 'Father';
+                } else if (studentData?.mother_mobile_no === clientNumber) {
+                  contactName = 'Mother';
                 }
-          
-                // Cleanup
-                return () => {
-                  socket.off('requestReturnDevice', handleReturnDevice);
-                  console.log('Removed registerDevice listener');
-                };
 
+                // Add to formatted call details
+                formattedCallDetails.push({
+                  name: contactName,
+                  mobile: clientNumber,
+                  startTime: startTime,
+                  duration: duration,
+                });
+              });
+            }
+          });
+
+          // Create response object with formatted call details
+          const responseData = {
+            ...allCallLogs[0], // Use first response as base
+            formattedCallDetails: formattedCallDetails,
+          };
+
+          if (
+            allCallLogs.some(
+              log => log.status === 200 || log.results?.length > 0,
+            )
+          ) {
+            handleReturnDevice(responseData);
+          } else {
+            console.log('Error fetching call logs or no results found');
           }
+        } catch (error) {
+          console.log('Error fetching call logs:', error);
+        }
+      };
 
-    },[socket,isConnected,connectionError])
+      // Helper function to format time
+      const formatTime = timeString => {
+        if (!timeString) return 'N/A';
 
-    
+        // Convert 24-hour format to 12-hour format with AM/PM
+        const [hours, minutes] = timeString.split(':');
+        const hour24 = parseInt(hours);
+        const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+        const ampm = hour24 >= 12 ? 'PM' : 'AM';
 
-  // useEffect(() => {
-  // const fetchProfile = async () => {
-  //   console.log('in', jwtToken);
-  //   try {
-  //     console.log('Fetching profile with jwtToken:', jwtToken);
-  //     const response = await fetch(
-  //       `${Base_url}/api/getprofile?username=25001`,
-  //       {
-  //         method: 'GET',
-  //         headers: {
-  //           // Authorization: `Bearer ${jwtToken}`,
-  //           'Content-Type': 'application/json',
-  //         },
-  //       },
-  //     );
+        return `${hour12}:${minutes} ${ampm}`;
+      };
 
-  //     if (!response.ok) {
-  //       const errorText = await response.text();
-  //       // //('Error Response:', errorText);
-  //       throw new Error(`HTTP error! status: ${response.status}`);
-  //     }
+      // Helper function to format duration
+      const formatDuration = durationInSeconds => {
+        if (!durationInSeconds || durationInSeconds === 0) return '0s';
 
-  //     const data = await response.json();
-  //     console.log('this is data', data);
-  //     if (data.return_status === 1) {
-  //       setProfileData(data.return_data);
-  //       setProfileImage(
-  //         `http://192.168.1.52:3002/image/student/${data.return_data.photo_url}`,
-  //       );
-  //       //('Fetched Gender:', data.return_data.gender);
-  //       setGender(data.return_data.gender);
-  //     } else {
-  //       // //(data.return_message);
-  //       // ('Error', data.return_message);
-  //     }
-  //   } catch (error) {
-  //     // //('Error fetching profile:', error);
-  //     // (
-  //     //   'Error',
-  //     //   'An unexpected error occurred while fetching profile data.',
-  //     // );
-  //     if (error.return_status == 401) {
-  //       setIsLogedIn(false);
-  //       navigation.navigate('UserNameScr');
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+        const minutes = Math.floor(durationInSeconds / 60);
+        const seconds = durationInSeconds % 60;
 
-  // fetchProfile();
-  // }, []);
+        if (minutes > 0) {
+          return `${minutes}m ${seconds}s`;
+        } else {
+          return `${seconds}s`;
+        }
+      };
+      const handleReturnDevice = async data => {
+        console.log('Received returnsDevice event:', data);
 
+        // Use the formatted call details from the API response, or fallback to empty array
+        const callDetails = data.formattedCallDetails || [];
+
+        try {
+          const response = await fetch(`${Base_url}/api/returnMobileDevice`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              //Authorization: `Bearer ${jwtToken}`, // Uncomment if using JWT
+            },
+            body: JSON.stringify({
+              data,
+              callDetails,
+            }),
+          });
+
+          const result = await response.json();
+          if (result.return_status === 1) {
+            emit('deviceReturnSuccess', data);
+            navigation.navigate('DeviceInformation');
+          } else {
+            emit('deviceReturnFailed', {
+              ...data,
+              errors: result.return_message,
+            });
+            console.log('data');
+          }
+          console.log('PUT response:', result);
+        } catch (error) {
+          emit('deviceReturnFailed', {...data, errors: error.messages});
+          console.error('PUT request failed:', error);
+        }
+
+        if (error && errorMsg.includes('WebSocket')) {
+          setError(false);
+          setErrorMsg('');
+        }
+      };
+      socket.on('requestReturnDevice', CallLog);
+
+      if (isConnected) {
+        console.log(
+          'Socket already connected, registerDevice event might have been missed',
+        );
+        // Optionally emit something to let server know we're ready
+      }
+
+      // Cleanup
+      return () => {
+        socket.off('requestReturnDevice', CallLog);
+        console.log('Removed registerDevice listener');
+      };
+    }
+  }, [
+    socket,
+    isConnected,
+    connectionError,
+    emit,
+    error,
+    errorMsg,
+    navigation,
+    studentData?.father_mobile_no,
+    studentData?.mother_mobile_no,
+  ]);
+
+  // Back handler that exits app only when on Main screen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true; // Prevent default behavior
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress,
+      );
+
+      return () => backHandler.remove();
+    }, []),
+  );
 
   useEffect(() => {
     async function getDeviceToken() {
@@ -176,67 +266,9 @@ export default function Main() {
       setDeviceId(deviceId);
     }
     getDeviceToken();
-    const fetchProfile = async () => {
-      console.log('Fetching profile with jwtToken:', jwtToken);
-      try {
-        const response = await fetch(
-          `${Base_url}/api/getprofile?id=${251002}`, // Pass the user ID as a query parameter
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              // Authorization: `Bearer ${jwtToken}`, // Uncomment if using JWT
-            },
-          },
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Profile data:', data);
-
-        if (data.return_status === 1) {
-          setProfileData(data.return_data);
-          setProfileImage(
-            `http://192.168.1.52:3002/image/student/${data.return_data.photo_url}`,
-          );
-          setGender(data.return_data.gender);
-        } else {
-          console.error('Error:', data.return_message);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        if (error.return_status === 401) {
-          setIsLogedIn(false);
-          navigation.navigate('UserNameScr');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
 
     // fetchProfile();
   }, [jwtToken, navigation, setIsLogedIn]); // Add dependencies to avoid unnecessary re-renders
-
-  const makePhoneCall = phoneNumber => {
-    const phoneUrl = `tel:${phoneNumber}`;
-    Linking.canOpenURL(phoneUrl)
-      .then(supported => {
-        if (supported) {
-          Linking.openURL(phoneUrl);
-        } else {
-          Alert.alert('Error', 'Unable to open the phone dialer.');
-        }
-      })
-      .catch(err => console.error('An error occurred', err));
-  };
-
-  const handelProfileModalVisibility = () => {
-    setIsVisible(true);
-  };
 
   const showToasts = msg => {
     Toast.success(msg);
@@ -247,18 +279,28 @@ export default function Main() {
     try {
       setLoading(true);
       const req = await fetch(
-        `${Base_url}/thirdpartyapi/telecall_api?apiKey=e5d668fe-7e40-4a72-83ce-69c332b33506&customerNumber=${number}`,
+        'https://api-smartflo.tatateleservices.com/v1/click_to_call_support',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk', // from Tata Tele
+          },
+          body: JSON.stringify({
+            agent_number: '918010911884',
+            customer_number: Number(number),
+            api_key: 'e5d668fe-7e40-4a72-83ce-69c332b33506',
+            get_call_id: 1,
+          }),
+        },
       );
       const res = await req.json();
       console.log('this is res for tata teli api', res);
-      if (res.return_message == 'Originate failed') {
+      if (res.success == true) {
+        navigation.navigate('CallScreen', {callId: res.call_id});
+      } else {
         showToasts('Call disconnected by the agent');
-      }
-      if (res.return_message == 'Call Connected') {
-        navigation.navigate('CallScreen', {name: name});
-      }
-      if (res.return_message == 'Agent is Offline') {
-        showToasts('Agent not logged in');
       }
     } catch (error) {
       console.log(error);
@@ -267,51 +309,33 @@ export default function Main() {
     }
   };
 
-  const HangUpCall = async callId => {
-    try {
-      const req = await fetch(`${Base_url}/v1/call/hangup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer YOUR_API_TOKEN', // from Tata Tele
-        },
-        body: JSON.stringify({call_id: callId}),
-      });
-
-      const res = await req.json();
-      console.log('Tata Tele API - Hangup Call Response:', res);
-
-      if (res.success) {
-        showToasts('Call ended successfully');
-      } else {
-        showToasts('Failed to end call');
-      }
-
-      return res;
-    } catch (error) {
-      console.log('Error ending call:', error);
-    }
-  };
-
-  const CallLog = async (fromDate, toDate) => {
+  const CallLog = async callId => {
     try {
       const queryParams = new URLSearchParams({
-        from_date: fromDate,
-        to_date: toDate,
+        call_id: callId,
       }).toString();
 
-      const req = await fetch(`${Base_url}/v1/call/records?${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer YOUR_API_TOKEN',
+      const req = await fetch(
+        `https://api-smartflo.tatateleservices.com/v1/call/records?${queryParams}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk',
+          },
         },
-      });
+      );
 
       const res = await req.json();
       console.log('Tata Tele API - Call Logs:', res);
 
-      return res;
+      // if (res.return_status === ) {
+      //   emit('deviceReturnSuccess', res);
+      //   navigation.navigate('DeviceInformation');
+      // } else {
+      //   emit('deviceReturnFailed', res);
+      // }
     } catch (error) {
       console.log('Error fetching call logs:', error);
     }
@@ -326,9 +350,8 @@ export default function Main() {
   //   setProfileData(number);
 
   const handelCall = async (number, name) => {
-    setCustomerNo(number);
     await CallApi(number, name);
-    makePhoneCall('+1234567890');
+    // makePhoneCall('+1234567890');
   };
   const GradientBackground = styled(LinearGradient);
 
@@ -353,11 +376,18 @@ export default function Main() {
                 Father/Gardian 1
               </Text>
               <View>
-                <Text className="text-white text-sm">+91 80X XXXX X88</Text>
+                <Text className="text-white text-sm">
+                  +91{' '}
+                  {studentData?.father_mobile_no.slice(0, 2) +
+                    'XXXXXX' +
+                    studentData?.father_mobile_no.slice(8)}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('CallScreen')}
+              onPress={() =>
+                handelCall(studentData?.father_mobile_no, 'Father/Gardian 1')
+              }
               className="bg-[#fff] flex-row items-center justify-center space-x-2 rounded-full p-3">
               <Icon name="call" size={24} color="#2D3192" />
             </TouchableOpacity>
@@ -373,11 +403,18 @@ export default function Main() {
                 Mother/Gardian 1
               </Text>
               <View>
-                <Text className="text-white text-sm">+91 80X XXXX X88</Text>
+                <Text className="text-white text-sm">
+                  +91{' '}
+                  {studentData?.mother_mobile_no.slice(0, 2) +
+                    'XXXXXX' +
+                    studentData?.mother_mobile_no.slice(8)}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('CallScreen')}
+              onPress={() =>
+                handelCall(studentData?.mother_mobile_no, 'Mother/Gardian 1')
+              }
               className="bg-[#fff] flex-row items-center justify-center space-x-2 rounded-full p-3">
               <Icon name="call" size={24} color="#2D3192" />
             </TouchableOpacity>
@@ -398,7 +435,7 @@ export default function Main() {
             end={{x: 1, y: 0.5}}>
             <TouchableOpacity
               className="flex-row items-center justify-center space-x-2 rounded-full"
-              onPress={() => setIsVisible(true)}>
+              onPress={() => CallLog(1755333719.936283)}>
               <MaterialIcons name="qr-code" size={20} color="#fff" />
               <Text className="text-white text-base font-bold">Scan</Text>
             </TouchableOpacity>
