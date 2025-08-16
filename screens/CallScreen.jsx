@@ -23,8 +23,7 @@ export default function CallScreen() {
   const route = useRoute();
   const {callId, name} = route.params || {};
   const navigation = useNavigation();
-  const Base_url = 'http://192.168.1.53:3004';
-  const {setCallDuration} = useStore();
+  // const {setCallDuration} = useStore();
   // Timer states
   const [seconds, setSeconds] = useState(0);
   const [isCallActive, setIsCallActive] = useState(true);
@@ -147,7 +146,7 @@ export default function CallScreen() {
 
       // Call the hang up API
       const finalCallDuration = seconds;
-      setCallDuration(finalCallDuration);
+      // setCallDuration(finalCallDuration);
       console.log('Call ended. Duration:', formatTime(finalCallDuration));
 
       if (callId) {

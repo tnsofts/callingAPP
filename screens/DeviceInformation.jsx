@@ -52,12 +52,12 @@ export default function DeviceInformation() {
   const getBaseUrl = () => {
     if (Platform.OS === 'android') {
       // For Android emulator, use your machine's actual IP address
-      return 'http://192.168.1.53:3002';
+      return 'http://192.168.1.90:3002';
     } else if (Platform.OS === 'ios') {
       // For iOS simulator, use your machine's IP address as well
-      return 'http://192.168.1.53:3002';
+      return 'http://192.168.1.90:3002';
     } else {
-      return 'http://192.168.1.53:3002';
+      return 'http://192.168.1.90:3002';
     }
   };
 

@@ -20,7 +20,7 @@ import LoaderKit from 'react-native-loader-kit';
 
 export default function Scanner() {
   const navigation = useNavigation();
-  const BASE_URL = 'http://192.168.1.53:3002';
+  const BASE_URL = 'http://192.168.1.90:3002';
   const [deviceIdScanner, setDeviceIdScanner] = useState('');
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');

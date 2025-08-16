@@ -4,7 +4,7 @@ import RNBlobUtil from 'react-native-blob-util';
 import DeviceInfo from 'react-native-device-info';
 import {navigate} from './navigationRef';
 
-const Base_url = 'http://192.168.1.53:3002';
+const Base_url = 'http://192.168.1.90:3002';
 
 const filePath = RNBlobUtil.fs.dirs.DocumentDir + '/data.json';
 const filePath2 = RNBlobUtil.fs.dirs.DocumentDir + '/data2.json';

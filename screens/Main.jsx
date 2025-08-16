@@ -28,7 +28,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 export default function Main() {
   const {jwtToken, idNumber, setIsLogedIn} = store();
-  const Base_url = 'http://192.168.1.53:3004';
+  const Base_url = 'http://192.168.1.90:3004';
   const [gender, setGender] = useState(profileData?.gender || '');
   const [profileData, setProfileData] = useState([]);
   const [profileImage, setProfileImage] = useState(null);

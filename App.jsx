@@ -14,7 +14,7 @@ import {View} from 'react-native';
 const Stack = createStackNavigator();
 
 export default function App() {
-  const BASE_URL = 'http://192.168.1.53:3002';
+  const BASE_URL = 'http://192.168.1.90:3002';
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [initialRoute, setInitialRoute] = useState('DeviceInformation'); // Safe default

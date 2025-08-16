@@ -17,7 +17,7 @@ import store from '../store';
 import LoaderKit from 'react-native-loader-kit';
 
 export default function Password() {
-  const Base_url = 'http://192.168.1.53:3002';
+  const Base_url = 'http://192.168.1.90:3002';
   const navigation = useNavigation();
   const route = useRoute();
   const {idCardNumber} = route.params;
