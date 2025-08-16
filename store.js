@@ -157,6 +157,7 @@ const store = create(set => ({
           console.error('Error in setIsLogedIn:', error);
         });
       console.log('isRegistered saved:', value);
+
       const verifyData = JSON.parse(
         await RNBlobUtil.fs.readFile(filePath, 'utf8'),
       );
@@ -169,6 +170,7 @@ const store = create(set => ({
   setIdNumber: value => set(() => ({idNumber: value})),
 
   setOtpHash: value => set(() => ({otpHash: value})),
+
   setIsLogedIn: async value => {
     try {
       set(() => ({isLogedIn: value}));
@@ -178,6 +180,7 @@ const store = create(set => ({
           console.error('Error in setIsLogedIn:', error);
         });
       console.log('isLogedIn saved:', value);
+
       const verifyData = JSON.parse(
         await RNBlobUtil.fs.readFile(filePath2, 'utf8'),
       );
@@ -186,6 +189,7 @@ const store = create(set => ({
       console.error('Error in setIsLogedIn:', error);
     }
   },
+
   setToken: value => set(() => ({token: value})),
 
   setJwtToken: value => set(() => ({jwtToken: value})),
@@ -201,6 +205,7 @@ const store = create(set => ({
         set(() => ({isRegistered: null}));
         return;
       }
+
       const data = await RNBlobUtil.fs.readFile(filePath, 'utf8');
       const parsedData = JSON.parse(data);
       set(() => ({isRegistered: parsedData.isRegistered ?? null}));
@@ -210,6 +215,7 @@ const store = create(set => ({
       set(() => ({isRegistered: null}));
     }
   },
+
   getIsLogedIn: async () => {
     try {
       // Check if file exists before trying to read it
@@ -221,6 +227,7 @@ const store = create(set => ({
         set(() => ({isLogedIn: false}));
         return;
       }
+
       const data = await RNBlobUtil.fs.readFile(filePath2, 'utf8');
       const parsedData = JSON.parse(data);
       set(() => ({isLogedIn: parsedData.isLogedIn ?? false}));
