@@ -18,7 +18,7 @@ import LoaderKit from 'react-native-loader-kit';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 export default function Login() {
-  const Base_url = 'http://192.168.1.52:3002';
+  const Base_url = 'http://192.168.1.53:3002';
   const [idCardNumber, setIdCardNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -81,7 +81,7 @@ export default function Login() {
     try {
       setUname(val);
       setIdNumber(val);
-      const response = await fetch(`http://192.168.1.52:3002/api/idcardcheck`, {
+      const response = await fetch(`http://192.168.1.53:3002/api/idcardcheck`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id_card_no: val}),
@@ -108,7 +108,7 @@ export default function Login() {
       startTransition(async () => {
         try {
           const response = await fetch(
-            `http://192.168.1.52:3002/api/idcardcheck`,
+            `http://192.168.1.53:3002/api/idcardcheck`,
             {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},

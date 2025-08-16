@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
+  BackHandler,
   Image,
   ImageBackground,
   StatusBar,
@@ -10,7 +11,11 @@ import {
   View,
 } from 'react-native';
 import store from '../store';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -23,7 +28,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 export default function Main() {
   const {jwtToken, idNumber, setIsLogedIn} = store();
-  const Base_url = 'http://192.168.1.52:3002';
+  const Base_url = 'http://192.168.1.53:3004';
   const [gender, setGender] = useState(profileData?.gender || '');
   const [profileData, setProfileData] = useState([]);
   const [profileImage, setProfileImage] = useState(null);
@@ -33,58 +38,22 @@ export default function Main() {
   const [isVisible, setIsVisible] = useState(false);
   const navigation = useNavigation();
 
-  // useEffect(() => {
-  // const fetchProfile = async () => {
-  //   console.log('in', jwtToken);
-  //   try {
-  //     console.log('Fetching profile with jwtToken:', jwtToken);
-  //     const response = await fetch(
-  //       `${Base_url}/api/getprofile?username=25001`,
-  //       {
-  //         method: 'GET',
-  //         headers: {
-  //           // Authorization: `Bearer ${jwtToken}`,
-  //           'Content-Type': 'application/json',
-  //         },
-  //       },
-  //     );
+  // Back handler that exits app only when on Main screen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true; // Prevent default behavior
+      };
 
-  //     if (!response.ok) {
-  //       const errorText = await response.text();
-  //       // //('Error Response:', errorText);
-  //       throw new Error(`HTTP error! status: ${response.status}`);
-  //     }
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress,
+      );
 
-  //     const data = await response.json();
-  //     console.log('this is data', data);
-  //     if (data.return_status === 1) {
-  //       setProfileData(data.return_data);
-  //       setProfileImage(
-  //         `http://192.168.1.52:3002/image/student/${data.return_data.photo_url}`,
-  //       );
-  //       //('Fetched Gender:', data.return_data.gender);
-  //       setGender(data.return_data.gender);
-  //     } else {
-  //       // //(data.return_message);
-  //       // ('Error', data.return_message);
-  //     }
-  //   } catch (error) {
-  //     // //('Error fetching profile:', error);
-  //     // (
-  //     //   'Error',
-  //     //   'An unexpected error occurred while fetching profile data.',
-  //     // );
-  //     if (error.return_status == 401) {
-  //       setIsLogedIn(false);
-  //       navigation.navigate('UserNameScr');
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // fetchProfile();
-  // }, []);
+      return () => backHandler.remove();
+    }, []),
+  );
 
   useEffect(() => {
     async function getDeviceToken() {
@@ -93,67 +62,9 @@ export default function Main() {
       setDeviceId(deviceId);
     }
     getDeviceToken();
-    const fetchProfile = async () => {
-      console.log('Fetching profile with jwtToken:', jwtToken);
-      try {
-        const response = await fetch(
-          `${Base_url}/api/getprofile?id=${251002}`, // Pass the user ID as a query parameter
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              // Authorization: `Bearer ${jwtToken}`, // Uncomment if using JWT
-            },
-          },
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Profile data:', data);
-
-        if (data.return_status === 1) {
-          setProfileData(data.return_data);
-          setProfileImage(
-            `http://192.168.1.52:3002/image/student/${data.return_data.photo_url}`,
-          );
-          setGender(data.return_data.gender);
-        } else {
-          console.error('Error:', data.return_message);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        if (error.return_status === 401) {
-          setIsLogedIn(false);
-          navigation.navigate('UserNameScr');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
 
     // fetchProfile();
   }, [jwtToken, navigation, setIsLogedIn]); // Add dependencies to avoid unnecessary re-renders
-
-  const makePhoneCall = phoneNumber => {
-    const phoneUrl = `tel:${phoneNumber}`;
-    Linking.canOpenURL(phoneUrl)
-      .then(supported => {
-        if (supported) {
-          Linking.openURL(phoneUrl);
-        } else {
-          Alert.alert('Error', 'Unable to open the phone dialer.');
-        }
-      })
-      .catch(err => console.error('An error occurred', err));
-  };
-
-  const handelProfileModalVisibility = () => {
-    setIsVisible(true);
-  };
 
   const showToasts = msg => {
     Toast.success(msg);
@@ -164,49 +75,33 @@ export default function Main() {
     try {
       setLoading(true);
       const req = await fetch(
-        `${Base_url}/thirdpartyapi/telecall_api?apiKey=e5d668fe-7e40-4a72-83ce-69c332b33506&customerNumber=${number}`,
+        'https://api-smartflo.tatateleservices.com/v1/click_to_call_support',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk', // from Tata Tele
+          },
+          body: JSON.stringify({
+            agent_number: '918010911884',
+            customer_number: Number(number),
+            api_key: 'e5d668fe-7e40-4a72-83ce-69c332b33506',
+            get_call_id: 1,
+          }),
+        },
       );
       const res = await req.json();
       console.log('this is res for tata teli api', res);
-      if (res.return_message == 'Originate failed') {
+      if (res.success == true) {
+        navigation.navigate('CallScreen', {callId: res.call_id});
+      } else {
         showToasts('Call disconnected by the agent');
-      }
-      if (res.return_message == 'Call Connected') {
-        navigation.navigate('CallScreen', {name: name});
-      }
-      if (res.return_message == 'Agent is Offline') {
-        showToasts('Agent not logged in');
       }
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const HangUpCall = async callId => {
-    try {
-      const req = await fetch(`${Base_url}/v1/call/hangup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer YOUR_API_TOKEN', // from Tata Tele
-        },
-        body: JSON.stringify({call_id: callId}),
-      });
-
-      const res = await req.json();
-      console.log('Tata Tele API - Hangup Call Response:', res);
-
-      if (res.success) {
-        showToasts('Call ended successfully');
-      } else {
-        showToasts('Failed to end call');
-      }
-
-      return res;
-    } catch (error) {
-      console.log('Error ending call:', error);
     }
   };
 
@@ -243,9 +138,8 @@ export default function Main() {
   //   setProfileData(number);
 
   const handelCall = async (number, name) => {
-    setCustomerNo(number);
     await CallApi(number, name);
-    makePhoneCall('+1234567890');
+    // makePhoneCall('+1234567890');
   };
   const GradientBackground = styled(LinearGradient);
 
@@ -274,7 +168,7 @@ export default function Main() {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('CallScreen')}
+              onPress={() => handelCall('9960353112', 'Father/Gardian 1')}
               className="bg-[#fff] flex-row items-center justify-center space-x-2 rounded-full p-3">
               <Icon name="call" size={24} color="#2D3192" />
             </TouchableOpacity>
@@ -294,7 +188,7 @@ export default function Main() {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('CallScreen')}
+              onPress={() => handelCall('9960353112', 'Mother/Gardian 1')}
               className="bg-[#fff] flex-row items-center justify-center space-x-2 rounded-full p-3">
               <Icon name="call" size={24} color="#2D3192" />
             </TouchableOpacity>
