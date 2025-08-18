@@ -23,7 +23,7 @@ export default function Scanner() {
   const [deviceIdScanner, setDeviceIdScanner] = useState('');
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const {deviceIdBackend, idCardNo, deviceId, setStudentData, setIsLogedIn} = store();
+  const {deviceIdBackend, idCardNo, deviceId} = store();
   //const {deviceIdBackend, idCardNo} = store();
   useEffect(() => {
     async function getDeviceToken() {
@@ -65,47 +65,38 @@ export default function Scanner() {
   useEffect(() => {
     const handleScan = async (deviceId_, idCardNo) => {
       try {
-        console.log('data compare', deviceId_, deviceIdScanner);
-        if (deviceId_ === deviceIdScanner) {
-          const req = await fetch(`${BASE_URL}/api/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              device_id: deviceId_,
-              id_card_no: idCardNo,
-            }),
-          });
-          const data = await req.json();
-          console.log('data', data);
-          if (data.return_status === 1) {
-            emit('deviceIssueSuccess', {deviceId: deviceId_, idCardNo});
-            await setStudentData(data.return_data);
-            await setIsLogedIn(true);
-            navigation.navigate('Main');
-          } else {
-            emit('deviceIssueFailed', {
-              deviceId_,
-              idCardNo,
-              errors: data.return_message,
-            });
-            setError(true);
-            setErrorMsg(data.return_message);
-          }
+        console.log('data compare', deviceId,deviceIdScanner);
+            if (deviceId_ === deviceId) {
+        const req = await fetch(`${BASE_URL}/api/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            device_id: deviceId,
+            id_card_no: idCardNo,
+          }),
+        });
+        const data = await req.json();
+        console.log('data', data);
+        if (data.return_status === 1) {
+          emit('deviceIssueSuccess', {deviceId,idCardNo})
+          navigation.navigate('Main');
         } else {
+          emit('deviceIssueFailed', {deviceId,idCardNo,errors: data.return_message})
           setError(true);
-          emit('deviceIssueFailed', {
-            deviceId_,
-            idCardNo,
-            errors: 'Device ID does not match',
-          });
-          setErrorMsg('Device ID does not match');
+          setErrorMsg(data.return_message);
         }
-      } catch (error) {
-        console.log('error login data', error);
-        emit('deviceIssueFailed', {deviceId, idCardNo, errors: error});
+      } else {
+        setError(true);
+        emit('deviceIssueFailed', {deviceId,idCardNo,errors:"Device ID does not match"})
+        setErrorMsg('Device ID does not match');
       }
+      } catch (error) {
+          console.log("error login data", error.messages)
+          emit('deviceIssueFailed', {deviceId,idCardNo,errors: error.messages})
+      }
+      
     };
     if (connectionError) {
       // You could show an alert or update UI to inform user
@@ -155,7 +146,7 @@ export default function Scanner() {
     error,
     errorMsg,
     BASE_URL,
-    deviceId,
+    deviceId
   ]);
  
   const GradientBackground = styled(LinearGradient);
@@ -191,9 +182,7 @@ export default function Scanner() {
             className="w-64 h-72 flex items-center justify-center">
             <TouchableOpacity onPress={() => navigation.navigate('Main')}>
               <View className="bg-white rounded-2xl px-7 py-5 space-y-3 -mt-6 items-center justify-center">
-                {deviceIdScanner && (
-                  <QRCode value={String(deviceIdScanner)} size={140} />
-                )}
+                {deviceIdScanner && <QRCode value={String(deviceIdScanner)} size={140} />}
                 <Text className="text-black text-sm">Scan QR code</Text>
               </View>
             </TouchableOpacity>
