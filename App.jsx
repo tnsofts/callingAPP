@@ -10,11 +10,12 @@ import store from './store';
 import LoaderKit from 'react-native-loader-kit';
 import {navigationRef, navigate} from './navigationRef';
 import {View} from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 
 const Stack = createStackNavigator();
 
 export default function App() {
-  const BASE_URL = 'http://192.168.1.90:3002';
+  const BASE_URL = 'http://192.168.0.100:3002';
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [initialRoute, setInitialRoute] = useState('DeviceInformation'); // Safe default
@@ -33,6 +34,16 @@ export default function App() {
     isLogedIn,
     getIsLogedIn,
   } = store();
+
+  useEffect(() => {
+    async function getDeviceToken() {
+      const deviceId = DeviceInfo.getDeviceId();
+      console.log('Device ID:', deviceId);
+      //setDeviceIdScanner(deviceId);
+      setDeviceId(deviceId);
+    }
+    getDeviceToken();
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {

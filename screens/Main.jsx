@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {
   Alert,
   BackHandler,
+  BackHandler,
   Image,
   ImageBackground,
   StatusBar,
@@ -11,6 +12,11 @@ import {
   View,
 } from 'react-native';
 import store from '../store';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import {
   useNavigation,
   useRoute,
@@ -39,6 +45,7 @@ export default function Main() {
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [callIDS, setCallIDS] = useState([]);
   const navigation = useNavigation();
   const {studentData} = store();
 
@@ -62,13 +69,15 @@ export default function Main() {
       // Store call logs temporarily
       const callLogsStorage = [];
 
-      const CallLog = async call_ids => {
+      const CallLog = async data => {
         try {
+          console.log('call_ids', callIDS);
+          console.log('data21', data);
           // Clear previous call logs
           callLogsStorage.length = 0;
 
           // Handle both single call_id and array of call_ids
-          const idsArray = Array.isArray(call_ids) ? call_ids : [call_ids];
+          const idsArray = Array.isArray(callIDS) ? callIDS : [callIDS];
 
           // Fetch all call logs in parallel
           const callLogPromises = idsArray.map(async call_id => {
@@ -139,7 +148,7 @@ export default function Main() {
               log => log.status === 200 || log.results?.length > 0,
             )
           ) {
-            handleReturnDevice(responseData);
+            handleReturnDevice(data, responseData);
           } else {
             console.log('Error fetching call logs or no results found');
           }
@@ -174,12 +183,13 @@ export default function Main() {
           return `${seconds}s`;
         }
       };
-      const handleReturnDevice = async data => {
+      const handleReturnDevice = async (data, responseData) => {
         console.log('Received returnsDevice event:', data);
 
         // Use the formatted call details from the API response, or fallback to empty array
-        const callDetails = data.formattedCallDetails || [];
-
+        console.log('Received returnsDevice event 2:', responseData);
+        const callDetails = responseData.formattedCallDetails || [];
+        console.log('Received returnsDevice event 3:', callDetails);
         try {
           const response = await fetch(`${Base_url}/api/returnMobileDevice`, {
             method: 'PUT',
@@ -195,7 +205,8 @@ export default function Main() {
 
           const result = await response.json();
           if (result.return_status === 1) {
-            emit('deviceReturnSuccess', data);
+            emit('deviceReturnSuccess', data, callDetails);
+            setIsLogedIn(false);
             navigation.navigate('DeviceInformation');
           } else {
             emit('deviceReturnFailed', {
@@ -240,6 +251,7 @@ export default function Main() {
     navigation,
     studentData?.father_mobile_no,
     studentData?.mother_mobile_no,
+    callIDS,
   ]);
 
   // Back handler that exits app only when on Main screen
@@ -294,10 +306,26 @@ export default function Main() {
             get_call_id: 1,
           }),
         },
+        'https://api-smartflo.tatateleservices.com/v1/click_to_call_support',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk', // from Tata Tele
+          },
+          body: JSON.stringify({
+            agent_number: '918010911884',
+            customer_number: Number(number),
+            api_key: 'e5d668fe-7e40-4a72-83ce-69c332b33506',
+            get_call_id: 1,
+          }),
+        },
       );
       const res = await req.json();
       console.log('this is res for tata teli api', res);
       if (res.success == true) {
+        setCallIDS(prev => [...prev, res.call_id]);
         navigation.navigate('CallScreen', {callId: res.call_id});
       } else {
         showToasts('Call disconnected by the agent');
@@ -309,35 +337,117 @@ export default function Main() {
     }
   };
 
-  const CallLog = async callId => {
+  const callLogsStorage = [];
+
+  const CallLog = async call_ids => {
     try {
-      const queryParams = new URLSearchParams({
-        call_id: callId,
-      }).toString();
+      // Clear previous call logs
+      callLogsStorage.length = 0;
 
-      const req = await fetch(
-        `https://api-smartflo.tatateleservices.com/v1/call/records?${queryParams}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization:
-              'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk',
+      // Handle both single call_id and array of call_ids
+      const idsArray = Array.isArray(call_ids) ? call_ids : [call_ids];
+
+      // Fetch all call logs in parallel
+      const callLogPromises = idsArray.map(async call_id => {
+        const queryParams = new URLSearchParams({
+          call_id: call_id,
+        }).toString();
+
+        const req = await fetch(
+          `https://api-smartflo.tatateleservices.com/v1/call/records?${queryParams}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization:
+                'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MDUwMTYiLCJjciI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9jbG91ZHBob25lLnRhdGF0ZWxlc2VydmljZXMuY29tL3Rva2VuL2dlbmVyYXRlIiwiaWF0IjoxNzU1MTc0NTk4LCJleHAiOjIwNTUxNzQ1OTgsIm5iZiI6MTc1NTE3NDU5OCwianRpIjoiTE1yWk9tU2VQVHZ0ZVZ3VSJ9._RjSGxFUN--X3ROIubz7OCdWlnPGvvoc9-EC-WRBVrk',
+            },
           },
-        },
-      );
+        );
 
-      const res = await req.json();
-      console.log('Tata Tele API - Call Logs:', res);
+        const res = await req.json();
+        return res;
+      });
 
-      // if (res.return_status === ) {
-      //   emit('deviceReturnSuccess', res);
-      //   navigation.navigate('DeviceInformation');
-      // } else {
-      //   emit('deviceReturnFailed', res);
-      // }
+      // Wait for all API calls to complete
+      const allCallLogs = await Promise.all(callLogPromises);
+
+      // Process and format the call logs
+      const formattedCallDetails = [];
+
+      allCallLogs.forEach(apiResponse => {
+        console.log('Tata Tele API - Call Logs:', apiResponse);
+
+        if (apiResponse.results && apiResponse.results.length > 0) {
+          apiResponse.results.forEach(callRecord => {
+            // Extract relevant information
+            const clientNumber =
+              callRecord.client_number?.replace('+91', '') || '';
+            const startTime = formatTime(callRecord.time);
+            const duration = formatDuration(callRecord.call_duration);
+
+            // Determine contact name based on phone number
+            let contactName = 'Unknown';
+            if (studentData?.father_mobile_no === clientNumber) {
+              contactName = 'Father';
+            } else if (studentData?.mother_mobile_no === clientNumber) {
+              contactName = 'Mother';
+            }
+
+            // Add to formatted call details
+            formattedCallDetails.push({
+              name: contactName,
+              mobile: clientNumber,
+              startTime: startTime,
+              duration: duration,
+            });
+          });
+        }
+      });
+
+      // Create response object with formatted call details
+      const responseData = {
+        ...allCallLogs[0], // Use first response as base
+        formattedCallDetails: formattedCallDetails,
+      };
+
+      if (
+        allCallLogs.some(log => log.status === 200 || log.results?.length > 0)
+      ) {
+        // handleReturnDevice(responseData);
+        console.log('responseData--', responseData.formattedCallDetails);
+      } else {
+        console.log('Error fetching call logs or no results found');
+      }
     } catch (error) {
       console.log('Error fetching call logs:', error);
+    }
+  };
+
+  // Helper function to format time
+  const formatTime = timeString => {
+    if (!timeString) return 'N/A';
+
+    // Convert 24-hour format to 12-hour format with AM/PM
+    const [hours, minutes] = timeString.split(':');
+    const hour24 = parseInt(hours);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  // Helper function to format duration
+  const formatDuration = durationInSeconds => {
+    if (!durationInSeconds || durationInSeconds === 0) return '0s';
+
+    const minutes = Math.floor(durationInSeconds / 60);
+    const seconds = durationInSeconds % 60;
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
   };
 
@@ -351,6 +461,7 @@ export default function Main() {
 
   const handelCall = async (number, name) => {
     await CallApi(number, name);
+    // makePhoneCall('+1234567890');
     // makePhoneCall('+1234567890');
   };
   const GradientBackground = styled(LinearGradient);
@@ -382,9 +493,18 @@ export default function Main() {
                     'XXXXXX' +
                     studentData?.father_mobile_no.slice(8)}
                 </Text>
+                <Text className="text-white text-sm">
+                  +91{' '}
+                  {studentData?.father_mobile_no.slice(0, 2) +
+                    'XXXXXX' +
+                    studentData?.father_mobile_no.slice(8)}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
+              onPress={() =>
+                handelCall(studentData?.father_mobile_no, 'Father/Gardian 1')
+              }
               onPress={() =>
                 handelCall(studentData?.father_mobile_no, 'Father/Gardian 1')
               }
@@ -409,9 +529,18 @@ export default function Main() {
                     'XXXXXX' +
                     studentData?.mother_mobile_no.slice(8)}
                 </Text>
+                <Text className="text-white text-sm">
+                  +91{' '}
+                  {studentData?.mother_mobile_no.slice(0, 2) +
+                    'XXXXXX' +
+                    studentData?.mother_mobile_no.slice(8)}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
+              onPress={() =>
+                handelCall(studentData?.mother_mobile_no, 'Mother/Gardian 1')
+              }
               onPress={() =>
                 handelCall(studentData?.mother_mobile_no, 'Mother/Gardian 1')
               }
@@ -435,7 +564,7 @@ export default function Main() {
             end={{x: 1, y: 0.5}}>
             <TouchableOpacity
               className="flex-row items-center justify-center space-x-2 rounded-full"
-              onPress={() => CallLog(1755333719.936283)}>
+              onPress={() => CallLog(callIDS)}>
               <MaterialIcons name="qr-code" size={20} color="#fff" />
               <Text className="text-white text-base font-bold">Scan</Text>
             </TouchableOpacity>
