@@ -19,7 +19,7 @@ import {useWebSocket} from './WebScoket';
  
 export default function Scanner() {
   const navigation = useNavigation();
-  const BASE_URL = 'http://192.168.0.100:3002';
+  const BASE_URL = 'https://api.hostel.demo.ims.lalittutorials.com';
   const [deviceIdScanner, setDeviceIdScanner] = useState('');
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');

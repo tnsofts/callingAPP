@@ -18,7 +18,7 @@ import DeviceInfo from 'react-native-device-info';
 const Stack = createStackNavigator();
  
 export default function App() {
-  const BASE_URL = 'http://192.168.0.100:3002';
+  const BASE_URL = 'https://api.hostel.demo.ims.lalittutorials.com';
   const {isRegistered, getIsRegistered, setBooting, booting, setDeviceId} = store();
  
    useEffect(() => {

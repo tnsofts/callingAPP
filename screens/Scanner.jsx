@@ -16,23 +16,39 @@ import {useNavigation} from '@react-navigation/native';
 import store from '../store';
 import CustomWarningMSg from '../component/CustomWarningMSg';
 import {useWebSocket} from './WebScoket';
+import LoaderKit from 'react-native-loader-kit';
  
 export default function Scanner() {
   const navigation = useNavigation();
-  const BASE_URL = 'http://192.168.0.100:3002';
-  const [deviceIdScanner, setDeviceIdScanner] = useState('');
+  const BASE_URL = 'https://api.hostel.demo.ims.lalittutorials.com';
+  //const [deviceIdScanner, setDeviceIdScanner] = useState('');
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const {deviceIdBackend, idCardNo, deviceId, setStudentData, setIsLogedIn} = store();
   //const {deviceIdBackend, idCardNo} = store();
+
+  const {booting2, setBooting2, getIsLogedIn, isLogedIn} = store();
+ 
   useEffect(() => {
-    async function getDeviceToken() {
-      const deviceId = DeviceInfo.getDeviceId();
-      console.log('Device ID:', deviceId);
-      setDeviceIdScanner(deviceId);
-    }
-    getDeviceToken();
-  }, []);
+    const getIsLogedInData = async () => {
+      await getIsLogedIn();
+      console.log('isLogedIn', isLogedIn, 'booting2', booting2);
+      setBooting2(true);
+      if (isLogedIn) {
+        navigation.navigate('Main');
+      }
+    };
+    getIsLogedInData();
+  }, [booting2, getIsLogedIn]);
+ 
+  // useEffect(() => {
+  //   async function getDeviceToken() {
+  //     const deviceId = DeviceInfo.getDeviceId();
+  //     console.log('Device ID:', deviceId);
+  //     setDeviceIdScanner(deviceId);
+  //   }
+  //   getDeviceToken();
+  // }, []);
  
   useEffect(() => {
     const backAction = () => {
@@ -65,8 +81,8 @@ export default function Scanner() {
   useEffect(() => {
     const handleScan = async (deviceId_, idCardNo) => {
       try {
-        console.log('data compare', deviceId_, deviceIdScanner);
-        if (deviceId_ === deviceIdScanner) {
+        console.log('data compare', deviceId_, deviceId);
+        if (deviceId_ === deviceId) {
           const req = await fetch(`${BASE_URL}/api/login`, {
             method: 'POST',
             headers: {
@@ -160,6 +176,21 @@ export default function Scanner() {
  
   const GradientBackground = styled(LinearGradient);
  
+  if (!booting2) {
+    console.log('booting', booting2, 'isLogedIn', isLogedIn);
+    return (
+      <>
+        <View className="items-center justify-center flex-1">
+          <LoaderKit
+            style={{width: 50, height: 50}}
+            name={'LineScalePulseOut'} // Optional: see list of animations below
+            color={'red'} // Optional: color can be: 'red', 'green',... or '#ddd', '#ffffff',...
+          />
+        </View>
+      </>
+    );
+  }
+ 
   return (
     <>
       <CustomWarningMSg
@@ -189,10 +220,10 @@ export default function Scanner() {
             source={require('./assets/qrOutlineWhite.png')}
             resizeMode="contain"
             className="w-64 h-72 flex items-center justify-center">
-            <TouchableOpacity onPress={() => navigation.navigate('Main')}>
+            <TouchableOpacity>
               <View className="bg-white rounded-2xl px-7 py-5 space-y-3 -mt-6 items-center justify-center">
-                {deviceIdScanner && (
-                  <QRCode value={String(deviceIdScanner)} size={140} />
+                {deviceId && (
+                  <QRCode value={String(deviceId)} size={140} />
                 )}
                 <Text className="text-black text-sm">Scan QR code</Text>
               </View>

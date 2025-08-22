@@ -16,13 +16,13 @@ const getServerUrl = () => {
   if (Platform.OS === 'android') {
     // For Android emulator, use your machine's actual IP address
     // 10.0.2.2 is for accessing localhost, but your server is on 192.168.0.100
-    return 'http://192.168.0.100:3002';
+    return 'https://api.hostel.demo.ims.lalittutorials.com';
   } else if (Platform.OS === 'ios') {
     // For iOS simulator, use your machine's IP address as well
-    return 'http://192.168.0.100:3002';
+    return 'https://api.hostel.demo.ims.lalittutorials.com';
   } else {
     // Fallback to your current IP
-    return 'http://192.168.0.100:3002';
+    return 'https://api.hostel.demo.ims.lalittutorials.com';
   }
 };
 

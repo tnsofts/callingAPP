@@ -4,10 +4,11 @@ import RNBlobUtil from 'react-native-blob-util';
 import DeviceInfo from 'react-native-device-info';
 import {navigate} from './navigationRef';
  
-const Base_url = 'http://192.168.0.100:3002';
- 
+const Base_url = 'https://api.hostel.demo.ims.lalittutorials.com';
+
 const filePath = RNBlobUtil.fs.dirs.DocumentDir + '/data.json';
 const filePath2 = RNBlobUtil.fs.dirs.DocumentDir + '/data2.json';
+const filePath3 = RNBlobUtil.fs.dirs.DocumentDir + '/data3.json';
  
 const store = create(set => ({
   idNumber: null,
@@ -34,7 +35,37 @@ const store = create(set => ({
   callDuration: 0,
   studentData: [],
  
-  setStudentData: value => set(() => ({studentData: value})),
+  setStudentData: async value => {
+    try {
+      set(() => ({studentData: value}));
+      await RNBlobUtil.fs
+        .writeFile(filePath3, JSON.stringify({studentData: value}), 'utf8')
+        .catch(error => {
+          console.error('Error writing studentData to file:', error);
+        });
+      console.log('studentData saved:', value);
+ 
+      const verifyData = JSON.parse(
+        await RNBlobUtil.fs.readFile(filePath3, 'utf8'),
+      );
+      console.log('Verified saved data:', verifyData);
+    } catch (error) {
+      console.error('Error in setStudentData:', error);
+    }
+  },
+
+  getStudentData: async () => {
+    try {
+      const data = await RNBlobUtil.fs.readFile(filePath3, 'utf8');
+      const parsedData = JSON.parse(data);
+      set(() => ({studentData: parsedData.studentData ?? []}));
+      console.log('Retrieved studentData:', parsedData.studentData);
+    } catch (error) {
+      console.error('Error in getStudentData:', error);
+      set(() => ({studentData: []}));
+    }
+  },
+ 
  
   setCallDuration: value => set(() => ({callDuration: value})),
  

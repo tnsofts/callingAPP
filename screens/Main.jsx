@@ -29,7 +29,7 @@ import {useWebSocket} from './WebScoket';
  
 export default function Main() {
   const {jwtToken, idNumber, setIsLogedIn} = store();
-  const Base_url = 'http://192.168.0.100:3002';
+  const Base_url = 'https://api.hostel.demo.ims.lalittutorials.com';
   const [gender, setGender] = useState(profileData?.gender || '');
   const [profileData, setProfileData] = useState([]);
   const [profileImage, setProfileImage] = useState(null);
@@ -144,7 +144,9 @@ export default function Main() {
           ) {
             handleReturnDevice(data, responseData);
           } else {
-            console.log('Error fetching call logs or no results found');
+            handleReturnDevice(data, []);
+            setIsLogedIn(false);
+            navigation.navigate('Scanner');
           }
         } catch (error) {
           console.log('Error fetching call logs:', error);
@@ -177,7 +179,7 @@ export default function Main() {
           return `${seconds}s`;
         }
       };
-      const handleReturnDevice = async (data, responseData) => {
+      const handleReturnDevice = async (data, responseData=[]) => {
         console.log('Received returnsDevice event:', data);
  
         // Use the formatted call details from the API response, or fallback to empty array
@@ -201,7 +203,7 @@ export default function Main() {
           if (result.return_status === 1) {
             emit('deviceReturnSuccess', data, callDetails);
             setIsLogedIn(false);
-            navigation.navigate('DeviceInformation');
+            navigation.navigate('Scanner');
           } else {
             emit('deviceReturnFailed', {
               ...data,

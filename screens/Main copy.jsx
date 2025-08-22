@@ -24,7 +24,7 @@ import {useWebSocket} from './WebScoket';
 
 export default function Main() {
   const {jwtToken, idNumber, setIsLogedIn} = store();
-  const Base_url = 'http://192.168.0.100:3002';
+  const Base_url = 'https://api.hostel.demo.ims.lalittutorials.com';
   const [gender, setGender] = useState(profileData?.gender || '');
   const [profileData, setProfileData] = useState([]);
   const [profileImage, setProfileImage] = useState(null);

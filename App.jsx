@@ -15,10 +15,10 @@ import DeviceInfo from 'react-native-device-info';
 const Stack = createStackNavigator();
  
 export default function App() {
-  const BASE_URL = 'http://192.168.0.100:3002';
+  const BASE_URL = 'https://api.hostel.demo.ims.lalittutorials.com';
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [initialRoute, setInitialRoute] = useState('DeviceInformation'); // Safe default
+  const [initialRoute, setInitialRoute] = useState(null); // Safe default
   const [appReady, setAppReady] = useState(false);
   const initializeRef = useRef(false);
  
@@ -33,6 +33,7 @@ export default function App() {
     getDeviceInfo,
     isLogedIn,
     getIsLogedIn,
+    getStudentData
   } = store();
  
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function App() {
         await getIsRegistered();
         await getIsLogedIn();
         await getDeviceInfo();
+        await getStudentData();
  
         // Check device registration status
         const deviceRegistered = await isDeviceRegistered();
@@ -111,7 +113,17 @@ export default function App() {
     );
   }
  
-  console.log('App ready, initial route:', initialRoute);
+  if (!initialRoute) {
+    return (
+      <View className="items-center justify-center flex-1">
+        <LoaderKit
+          style={{width: 50, height: 50}}
+          name={'LineScalePulseOut'}
+          color={'red'}
+        />
+      </View>
+    );
+  }
  
   return (
     <WebSocketProvider>
